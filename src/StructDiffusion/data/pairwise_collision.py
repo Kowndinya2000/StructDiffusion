@@ -94,7 +94,7 @@ class PairwiseCollisionDataset(torch.utils.data.Dataset):
         self.gamma_scale = 0.001
 
     def build_data_idxs(self, collision_data_dir):
-        print("Load collision data...")
+        # print("Load collision data...")
         positive_data = []
         negative_data = []
         for filename in tqdm.tqdm(os.listdir(collision_data_dir)):
@@ -116,16 +116,16 @@ class PairwiseCollisionDataset(torch.utils.data.Dataset):
                     positive_data.append((h5_filename, idx))
                 else:
                     negative_data.append((h5_filename, idx))
-        print("Num pairwise intersections:", len(positive_data))
-        print("Num pairwise no intersections:", len(negative_data))
+        # print("Num pairwise intersections:", len(positive_data))
+        # print("Num pairwise no intersections:", len(negative_data))
 
         if len(negative_data) != len(positive_data):
             min_len = min(len(negative_data), len(positive_data))
             positive_data = [positive_data[i] for i in np.random.permutation(len(positive_data))[:min_len]]
             negative_data = [negative_data[i] for i in np.random.permutation(len(negative_data))[:min_len]]
-            print("after balancing")
-            print("Num pairwise intersections:", len(positive_data))
-            print("Num pairwise no intersections:", len(negative_data))
+            # print("after balancing")
+            # print("Num pairwise intersections:", len(positive_data))
+            # print("Num pairwise no intersections:", len(negative_data))
 
         return positive_data + negative_data
 

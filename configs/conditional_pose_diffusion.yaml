@@ -7,15 +7,17 @@ WANDB:
 
 DATASET:
   data_roots:
-    - ${base_dirs.data}/examples_circle_new_objects/result
-    - ${base_dirs.data}/examples_line_new_objects/result
-    - ${base_dirs.data}/examples_stacking_new_objects/result
-    - ${base_dirs.data}/examples_dinner_new_objects/result
+    # - ${base_dirs.data}/examples_dinner_new_objects/result
+    # - ${base_dirs.data}/examples_dinner_new_objects/result
+    # - ${base_dirs.data}/examples_stacking_new_objects/result
+    # - ${base_dirs.data}/examples_dinner_new_objects/result
+    - ${base_dirs.testing_data}/examples_dinner_new_objects/result
   index_roots:
-    - index_10k
-    - index_10k
-    - index_10k
-    - index_10k
+    # - index_10k
+    # - index_10k
+    # - index_10k
+    # - index_10k
+    - index_24k
   vocab_dir: ${base_dirs.data}/type_vocabs_coarse.json
 
   # important

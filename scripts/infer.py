@@ -35,7 +35,7 @@ def main(args, cfg):
         data_idxs = np.random.permutation(len(dataset))
         for di in data_idxs:
             raw_datum = dataset.get_raw_data(di)
-            print(tokenizer.convert_structure_params_to_natural_language(raw_datum["sentence"]))
+            # print(tokenizer.convert_structure_params_to_natural_language(raw_datum["sentence"]))
             datum = dataset.convert_to_tensors(raw_datum, tokenizer)
             batch = dataset.single_datum_to_batch(datum, args.num_samples, device, inference_mode=True)
 

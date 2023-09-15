@@ -854,7 +854,7 @@ def open3d_set_side_view(vis):
     ctr.set_zoom(0.80000000000000004)
 
     init_param = ctr.convert_to_pinhole_camera_parameters()
-    print("camera extrinsic", init_param.extrinsic.tolist())
+    # print("camera extrinsic", init_param.extrinsic.tolist())
 
 
 def save_pcs(xyz, rgb, save_path=None, return_buffer=False, add_coordinate_frame=False, side_view=False, add_table=True):

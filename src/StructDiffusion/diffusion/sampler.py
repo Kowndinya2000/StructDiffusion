@@ -135,7 +135,7 @@ class SamplerV2:
 
         # N, P, 3
         obj_xyzs = batch["pcs"][0][:, :, :3]
-        print("obj_xyzs shape", obj_xyzs.shape)
+        # print("obj_xyzs shape", obj_xyzs.shape)
 
         # 1, N
         # object_pad_mask: padding location has 1
@@ -144,11 +144,11 @@ class SamplerV2:
             num_target_objs -= 1
         object_pad_mask = batch["pad_mask"][0][-num_target_objs:].unsqueeze(0)
         target_object_inds = 1 - object_pad_mask
-        print("target_object_inds shape", target_object_inds.shape)
-        print("target_object_inds", target_object_inds)
+        # print("target_object_inds shape", target_object_inds.shape)
+        # print("target_object_inds", target_object_inds)
 
         N, P, _ = obj_xyzs.shape
-        print("S, N, P: {}, {}, {}".format(S, N, P))
+        # print("S, N, P: {}, {}, {}".format(S, N, P))
 
         ####################################################
         # S, N, ...
@@ -230,7 +230,8 @@ class SamplerV2:
                 # 1 - mean() since the collision model predicts 1 if there is a collision
                 no_intersection_scores[cur_batch_idxs_start:cur_batch_idxs_end] = 1 - torch.mean(collision_scores, dim=1)
             if visualize:
-                print("no intersection scores", no_intersection_scores)
+                # print("no intersection scores", no_intersection_scores)
+                pass
             # #######################################
             # if discriminator_score_weight > 0:
             #     # # debug:

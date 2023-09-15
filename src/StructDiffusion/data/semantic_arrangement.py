@@ -8,7 +8,7 @@ import torch
 from tqdm import tqdm
 import json
 import random
-
+import pickle 
 from torch.utils.data import DataLoader
 
 # Local imports
@@ -26,7 +26,7 @@ class SemanticArrangementDataset(torch.utils.data.Dataset):
                  max_num_target_objects=11, max_num_distractor_objects=5,
                  max_num_shape_parameters=7, max_num_rearrange_features=1, max_num_anchor_features=3,
                  num_pts=1024,
-                 use_virtual_structure_frame=True, ignore_distractor_objects=True, ignore_rgb=True,
+                 use_virtual_structure_frame=True, ignore_distractor_objects=False, ignore_rgb=True,
                  filter_num_moved_objects_range=None, shuffle_object_index=False,
                  data_augmentation=True, debug=False, **kwargs):
         """
@@ -85,7 +85,7 @@ class SemanticArrangementDataset(torch.utils.data.Dataset):
         # if specified, filter data
         if filter_num_moved_objects_range is not None:
             self.arrangement_data = self.filter_based_on_number_of_moved_objects(filter_num_moved_objects_range)
-        print("{} valid sequences".format(len(self.arrangement_data)))
+        # print("{} valid sequences".format(len(self.arrangement_data)))
 
         # Data Aug
         self.data_augmentation = data_augmentation
@@ -278,6 +278,26 @@ class SemanticArrangementDataset(torch.utils.data.Dataset):
         current_pc_poses = []
         other_obj_pcs = []
         other_obj_pad_mask = []
+        # Save the point cloud to disk as a .obj file 
+        file_name_only = filename.split('/')[-1]
+        # if file_name_only == "data00725869.h5":
+        #     print("Here...")
+        dataset_dir = '/'.join(filename.split("/")[:-5])
+        os.makedirs(f"{dataset_dir}/{structure_parameters["type"]}-pcd-objs-diffusion/{file_name_only}", exist_ok=True)
+        # if len(anchor_objs) == 0:
+            # print("anchor_objs is empty for", file_name_only)
+
+        # Exporting results to LGMCTS
+        texture_mapping = dict()
+        name_ids = []
+        obj_xyz_list = []
+        obj_color_list = []
+        goal = dict()
+        goal["type"] = "pattern:tower"
+        goal["obj_ids"] = []
+        goal["anchor_id"] = []
+        goal["anchor_ids"] = []
+        
         for obj in all_objs:
             obj_mask = np.logical_and(seg == ids[obj], valid)
             if np.sum(obj_mask) <= 0:
@@ -285,7 +305,32 @@ class SemanticArrangementDataset(torch.utils.data.Dataset):
             ok, obj_xyz, obj_rgb, _ = get_pts(xyz, rgb, obj_mask, num_pts=self.num_pts)
             if not ok:
                 raise Exception
-
+            if obj in target_objs:
+                name = goal_specification["rearrange"]["objects"][target_objs.index(obj)]["class"]
+                size = goal_specification["rearrange"]["objects"][target_objs.index(obj)]["size"]
+                texture = goal_specification["rearrange"]["objects"][target_objs.index(obj)]["color"]
+                texture_mapping[name+"_"+size] = texture
+                goal["obj_ids"].append(ids[obj])
+            else:
+                anchor_objs = all_objs[num_rearrange_objs:num_rearrange_objs+len(goal_specification["anchor"]["objects"])]
+                if obj in anchor_objs:
+                    name = goal_specification["anchor"]["objects"][anchor_objs.index(obj)]["class"]
+                    size = goal_specification["anchor"]["objects"][anchor_objs.index(obj)]["size"]
+                    texture = goal_specification["anchor"]["objects"][anchor_objs.index(obj)]["color"]
+                    texture_mapping[name+"_"+size] = texture
+                    goal["anchor_ids"].append(ids[obj])
+                    goal["anchor_id"] = ids[obj]
+                else:
+                    distractor_objs = all_objs[num_rearrange_objs+len(goal_specification["anchor"]["objects"]):]
+                    name = goal_specification["distract"]["objects"][distractor_objs.index(obj)]["class"]
+                    size = goal_specification["distract"]["objects"][distractor_objs.index(obj)]["size"]
+                    texture = goal_specification["distract"]["objects"][distractor_objs.index(obj)]["color"]
+                    texture_mapping[name+"_"+size] = texture    
+            
+            name_ids.append((name+"_"+size, ids[obj]))
+            trimesh.Trimesh(vertices=obj_xyz, vertex_colors=obj_rgb).export(f"{dataset_dir}/{structure_parameters["type"]}-pcd-objs-diffusion/{file_name_only}/{name}_{size}.obj")
+            obj_xyz_list.append(obj_xyz)
+            obj_color_list.append(obj_rgb)
             if obj in target_objs:
                 if self.ignore_rgb:
                     obj_pcs.append(obj_xyz)
@@ -303,7 +348,15 @@ class SemanticArrangementDataset(torch.utils.data.Dataset):
                 other_obj_pad_mask.append(0)
             else:
                 raise Exception
-
+            
+        with open(f"{dataset_dir}/{structure_parameters["type"]}-pcd-objs-diffusion/{file_name_only}/texture_mapping.pkl", "wb") as f:
+            pickle.dump(texture_mapping, f)
+        with open(f"{dataset_dir}/{structure_parameters["type"]}-pcd-objs-diffusion/{file_name_only}/name_ids.pkl", "wb") as f:
+            pickle.dump(name_ids, f)
+        with open(f"{dataset_dir}/{structure_parameters["type"]}-pcd-objs-diffusion/{file_name_only}/obj_pcd_list.pkl", "wb") as f:
+            pickle.dump((obj_xyz_list, obj_color_list), f)
+        with open(f"{dataset_dir}/{structure_parameters["type"]}-pcd-objs-diffusion/{file_name_only}/goal.pkl", "wb") as f:
+            pickle.dump(goal, f)
         ###################################
         # computes goal positions for objects
         # Important: because of the noises we added to point clouds, the rearranged point clouds will not be perfect
@@ -338,14 +391,14 @@ class SemanticArrangementDataset(torch.utils.data.Dataset):
                 goal_pc_pose = goal_pc_poses[i]
                 if self.use_virtual_structure_frame:
                     goal_pc_pose = goal_structure_pose @ goal_pc_pose
-                print("current pc pose", current_pc_pose)
-                print("goal pc pose", goal_pc_pose)
+                # print("current pc pose", current_pc_pose)
+                # print("goal pc pose", goal_pc_pose)
 
                 goal_pc_transform = goal_pc_pose @ np.linalg.inv(current_pc_pose)
-                print("transform", goal_pc_transform)
+                # print("transform", goal_pc_transform)
                 new_obj_pc = copy.deepcopy(obj_pc)
                 new_obj_pc[:, :3] = trimesh.transform_points(obj_pc[:, :3], goal_pc_transform)
-                print(new_obj_pc.shape)
+                # print(new_obj_pc.shape)
 
                 # visualize rearrangement sequence (new_obj_xyzs), the current object before moving (obj_xyz), and other objects
                 new_obj_pcs[i] = new_obj_pc
@@ -399,7 +452,7 @@ class SemanticArrangementDataset(torch.utils.data.Dataset):
             goal_pc_poses.append(np.eye(4))
 
         ###################################
-        if self.debug:
+        if self.debug and False:
             print("---")
             print("all objects:", all_objs)
             print("target objects:", target_objs)

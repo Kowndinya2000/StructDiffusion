@@ -4,7 +4,7 @@ import torch
 import numpy as np
 import pytorch_lightning as pl
 from omegaconf import OmegaConf
-
+import pickle 
 from StructDiffusion.data.semantic_arrangement import SemanticArrangementDataset
 from StructDiffusion.language.tokenizer import Tokenizer
 from StructDiffusion.models.pl_models import ConditionalPoseDiffusionModel, PairwiseCollisionModel
@@ -28,22 +28,27 @@ def main(args, cfg):
         # override ignore_rgb for visualization
         cfg.DATASET.ignore_rgb = False
         dataset = SemanticArrangementDataset(split="test", tokenizer=tokenizer, **cfg.DATASET)
-
+        pattern = dataset.data_roots[0].split('/')[-2].split('_')[1]
         sampler = SamplerV2(ConditionalPoseDiffusionModel, diffusion_checkpoint_path,
                             PairwiseCollisionModel, collision_checkpoint_path, device)
 
         data_idxs = np.random.permutation(len(dataset))
         for di in data_idxs:
             raw_datum = dataset.get_raw_data(di)
-            print(tokenizer.convert_structure_params_to_natural_language(raw_datum["sentence"]))
+            # print(tokenizer.convert_structure_params_to_natural_language(raw_datum["sentence"]))
             datum = dataset.convert_to_tensors(raw_datum, tokenizer)
             batch = dataset.single_datum_to_batch(datum, args.num_samples, device, inference_mode=True)
 
             num_poses = datum["goal_poses"].shape[0]
             struct_pose, pc_poses_in_struct = sampler.sample(batch, num_poses)
-
-            new_obj_xyzs = move_pc_and_create_scene_simple(batch["pcs"], struct_pose, pc_poses_in_struct)
-            visualize_batch_pcs(new_obj_xyzs, args.num_samples, limit_B=10, trimesh=True)
+            
+            file_name_only = datum["filename"].split('/')[-1]
+            dataset_dir = '/'.join(datum["filename"].split("/")[:-5])
+            with open(f"{dataset_dir}/{pattern}-pcd-objs-diffusion/{file_name_only}/goal_pose.pkl", "wb") as f:
+                pickle.dump(datum["goal_poses"], f)
+            
+            # new_obj_xyzs = move_pc_and_create_scene_simple(batch["pcs"], struct_pose, pc_poses_in_struct)
+            # visualize_batch_pcs(new_obj_xyzs, args.num_samples, limit_B=10, trimesh=True)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,43 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Eval SDiffusion Tower",
+            "type": "python",
+            "request": "launch",
+            "program": "infer_with_discriminator.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd" : "${workspaceFolder}/scripts",
+            "args": [
+                "--testing_data_config_file",
+                "${workspaceFolder}/configs/testing_data_tower.yaml"
+            ]
+        },
+        {
+            "name": "Eval SDiffusion Dinner",
+            "type": "python",
+            "request": "launch",
+            "program": "infer_with_discriminator.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd" : "${workspaceFolder}/scripts",
+            "args": [
+                "--testing_data_config_file",
+                "${workspaceFolder}/configs/testing_data_dinner.yaml"
+            ]
+        },
+        {
+            "name": "Eval SDiffusion W/O Discriminator",
+            "type": "python",
+            "request": "launch",
+            "program": "infer.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "cwd" : "${workspaceFolder}/scripts"
+        }
+    ]
+}
